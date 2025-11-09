@@ -50,6 +50,7 @@ func LookupAll(word string) ([]Definition, LookupTiming, error) {
 	/*
 		Lookup the word in multiple dictionary APIs concurrently
 		Returns a combined list of type Definition from all sources
+		If flag is true, also returns timing information, else -1
 	*/
 	startTimeTotal := time.Now()
 
@@ -231,8 +232,7 @@ func LookupDBnaryEntry(word string) ([]SparqlEntry, error) {
 	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
 		return nil, err
 	}
-	// Print result for debugging
-	fmt.Printf("DBnary response: %+v\n", result)
+
 	return []SparqlEntry{result}, nil
 }
 

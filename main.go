@@ -11,23 +11,24 @@ import (
 
 func main() {
 	// Define flags
-	verbose := flag.Bool("verbose", false, "Enable verbose output")
-	flag.BoolVar(verbose, "v", false, "Enable verbose output (shorthand)")
-	timings := flag.Bool("timings", false, "Enable timing output")
-	flag.BoolVar(timings, "t", false, "Enable timing output (shorthand)")
+	verboseFlag := flag.Bool("verbose", false, "Enable verbose output")
+	flag.BoolVar(verboseFlag, "v", false, "Enable verbose output (shorthand)")
+	timingsFlag := flag.Bool("timings", false, "Enable timing output")
+	flag.BoolVar(timingsFlag, "t", false, "Enable timing output (shorthand)")
 	// Parse flags
 	flag.Parse()
 	args := flag.Args()
 	if len(args) > 0 {
 		input := strings.Join(args, ",")
-		HandleInput(input, *verbose)
+		HandleInput(input, *verboseFlag, *timingsFlag)
+
 		return
 	} else {
-		RunInteractive(*verbose)
+		RunInteractive(*verboseFlag, *timingsFlag)
 	}
 }
 
-func RunInteractive(verbose bool) {
+func RunInteractive(verbose bool, timings bool) {
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("For help, type ':h' or ':help' (not implemented yet)\n")
@@ -45,17 +46,29 @@ func RunInteractive(verbose bool) {
 		if trimmedInput == ":q" || trimmedInput == ":quit" {
 			fmt.Print("Exiting...\n")
 			break
+		} else if trimmedInput == ":hist" || trimmedInput == ":history" {
+			history, err := getRecentSearches()
+			if err == nil {
+				fmt.Printf("History: %s\n", history)
+			} else {
+				fmt.Println("Unexpected JSON/filepath error:", error)
+			}
 		} else {
-			HandleInput(trimmedInput, verbose)
+			HandleInput(trimmedInput, verbose, timings)
 		}
 	}
 }
 
-func HandleInput(input string, verbose bool) {
+func HandleInput(input string, verbose bool, timingsFlag bool) {
 	input = strings.ToLower(strings.TrimSpace(input))
 	if input == "" {
 		fmt.Println("No input provided.")
 		return
+	}
+
+	_, err := addRecentSearch(input)
+	if err != nil {
+		fmt.Printf("Unexpected JSON or filepath error: %v\n", err)
 	}
 
 	fmt.Printf("Handling input: %s\n", input)
@@ -81,7 +94,12 @@ func HandleInput(input string, verbose bool) {
 
 	// Print grouped results
 	for source, posGroup := range grouped {
-		fmt.Printf("\n=== Source: %s (%v) ===\n", source, timings.Sources[source].Round(100*time.Microsecond))
+		if timingsFlag {
+			fmt.Printf("\n=== Source: %s (%v) ===\n", source, timings.Sources[source].Round(100*time.Microsecond))
+		} else {
+			fmt.Printf("\n=== Source: %s ===\n", source)
+		}
+
 		for partOfSpeech, defs := range posGroup {
 			fmt.Printf("\n[%s]\n", strings.Title(partOfSpeech))
 			for i, def := range defs {
@@ -92,7 +110,9 @@ func HandleInput(input string, verbose bool) {
 			}
 		}
 	}
-	fmt.Printf("\nTotal lookup time: %v\n", timings.Total.Round(100*time.Microsecond))
+	if timingsFlag {
+		fmt.Printf("\nTotal lookup time: %v\n", timings.Total.Round(100*time.Microsecond))
+	}
 	fmt.Println("--------------------------")
 }
 
