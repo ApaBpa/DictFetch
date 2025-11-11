@@ -18,7 +18,7 @@ func getRecentSearches() ([]string, error) {
 
 	fileName := nameRecent
 	base := filepath.Dir(file)
-	dir := filepath.Join(base, "data")
+	dir := filepath.Join(base, "data") // Save in a new folder called 'data'
 	fullPath := filepath.Join(dir, fileName)
 
 	jsonString, err := os.ReadFile(fullPath)
